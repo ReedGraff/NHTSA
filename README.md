@@ -302,6 +302,27 @@ if __name__ == "__main__":
 
 </details>
 
+<details>
+<summary>Super minimal example</summary>
+
+Here is a super minimal example demonstrating how to decode a VIN.
+
+```python
+import asyncio
+from src.nhtsa.client import NhtsaClient
+
+async def main():
+    client = NhtsaClient()
+    print(f"\n--- VIN Decoding API: Decode VIN Batch ---")
+    decoded_vin_batch = await client.vin_decoding.decode_vin_batch(data="3GNDA13D76S000000,2011; 5XYKT3A12CG000000")
+    print(f"Decoded VIN Batch (first result): {decoded_vin_batch.results[0].model_dump_json(indent=2)}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+</details>
+
 ## Project Structure
 
 <details>
