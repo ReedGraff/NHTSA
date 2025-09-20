@@ -200,7 +200,7 @@ These are primarily links to external web pages, dashboards, or applications, an
 
 ## Quick Example
 
-<details>
+<details id="quick-example">
 <summary>Expand to see a Quick Example</summary>
 
 Here is a basic example demonstrating how to retrieve recall information and decode a VIN.
@@ -302,7 +302,7 @@ if __name__ == "__main__":
 
 </details>
 
-<details>
+<details id="minimal-example">
 <summary>Super minimal example</summary>
 
 Here is a super minimal example demonstrating how to decode a VIN.
