@@ -24,7 +24,7 @@ class NhtsaClient:
     BASE_URL = "https://api.nhtsa.gov"
     VPIC_BASE_URL = "https://vpic.nhtsa.dot.gov/api"
     STATIC_FILES_BASE_URL = "https://static.nhtsa.gov"
-    NRD_BASE_URL = "https://nrd.api.nhtsa.dot.gov" # New base URL for NRD APIs
+    NRD_BASE_URL = "https://nrd.api.nhtsa.dot.gov"
 
     def __init__(self, max_concurrent_requests: int = 5, nhtsa_requests_per_minute: int = 100, session_data: Optional[bytes] = None):
         """
@@ -53,7 +53,7 @@ class NhtsaClient:
             headers={
                 "accept": "application/json, text/plain, */*",
                 "accept-language": "en-US,en;q=0.9",
-                "user-agent": "NHTSA-SDK/1.0 (Python)",
+                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
             },
             follow_redirects=True,
             timeout=30.0,
@@ -64,7 +64,7 @@ class NhtsaClient:
             headers={
                 "accept": "*/*",
                 "accept-language": "en-US,en;q=0.9",
-                "user-agent": "NHTSA-SDK/1.0 (Python)",
+                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
             },
             follow_redirects=True,
             timeout=60.0,
@@ -76,7 +76,7 @@ class NhtsaClient:
             headers={
                 "accept": "application/json, text/plain, */*",
                 "accept-language": "en-US,en;q=0.9",
-                "user-agent": "NHTSA-SDK/1.0 (Python)",
+                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
             },
             follow_redirects=True,
             timeout=30.0,

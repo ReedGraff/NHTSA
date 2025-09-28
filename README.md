@@ -402,3 +402,12 @@ Each logical grouping of endpoints is encapsulated in its own module within the 
 * An `index.py` file that defines the main API class with methods for each endpoint.
 * A `models.py` file that defines the Pydantic models for structured output.
 * changes to the core client logic (e.g., session management, request handling) are made in `client.py`.
+
+<!--
+Publishing to PyPI:
+```
+Remove-Item .\dist\* -Recurse -Force
+python -m build
+python -m twine upload dist/*
+```
+-->
