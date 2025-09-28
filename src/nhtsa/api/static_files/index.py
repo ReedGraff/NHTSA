@@ -39,24 +39,35 @@ class StaticFilesAPI:
         response = await self.client._request("GET", file_url, follow_redirects=True, base_url="")
         return response.content
 
-    async def get_manufacturer_communication_pdf(self, year: int, nhtsa_id_number: int, sequential_number: int = 1) -> bytes:
-        """
-        Constructs the URL for a specific Manufacturer Communication PDF and downloads it.
+    # Now handled by the undocumented `safety_issues` endpoint
+    # async def get_manufacturer_communication_pdf(self, year: int, nhtsa_id_number: int, sequential_number: int = 1) -> bytes:
+    #     """
+    #     Constructs the URL for a specific Manufacturer Communication PDF and downloads it.
 
-        The URL format is: https://static.nhtsa.gov/odi/tsbs/{year}/MC-{nhtsa_id_number}-{sequential_number}.pdf
+    #     The URL format is: https://static.nhtsa.gov/odi/tsbs/{year}/MC-{nhtsa_id_number}-{sequential_number}.pdf
 
-        Args:
-            year (int): The year the communication was received (from the file path, e.g., 2025).
-            nhtsa_id_number (int): The NHTSA ID Number (from Field#1 in TSBS.txt, e.g., 11022868).
-            sequential_number (int): A sequential number for the PDF (e.g., 1 for '0001').
+    #     Args:
+    #         year (int): The year the communication was received (from the file path, e.g., 2025).
+    #         nhtsa_id_number (int): The NHTSA ID Number (from Field#1 in TSBS.txt, e.g., 11022868).
+    #         sequential_number (int): A sequential number for the PDF (e.g., 1 for '0001').
 
-        Returns:
-            bytes: The content of the downloaded PDF file.
+    #     Returns:
+    #         bytes: The content of the downloaded PDF file.
 
-        Raises:
-            httpx.RequestError: If the download fails.
-        """
-        # Format sequential_number to be 4 digits, e.g., 1 -> 0001
-        formatted_sequential_number = f"{sequential_number:04d}"
-        file_url = f"https://static.nhtsa.gov/odi/tsbs/{year}/MC-{nhtsa_id_number}-{formatted_sequential_number}.pdf"
-        return await self.download_file(file_url)
+    #     Raises:
+    #         httpx.RequestError: If the download fails.
+    #     """
+    #     # Format sequential_number to be 4 digits, e.g., 1 -> 0001
+    #     formatted_sequential_number = f"{sequential_number:04d}"
+    #     file_url = f"https://static.nhtsa.gov/odi/tsbs/{year}/MC-{nhtsa_id_number}-{formatted_sequential_number}.pdf" # This works for about 70-90% of files.
+    #     return await self.download_file(file_url)
+
+
+"""
+#N252508340: 7001736
+#N252508341: 7001753
+#PIT6298A: 6999089
+#PIT6433: 6999084
+#PIP6085: 6998855
+#PIC6607A: 6998852
+"""

@@ -18,11 +18,11 @@ from src.nhtsa.lib.models import APIResponse
 # Setup logger
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("httpcore").setLevel(logging.WARNING)
+# logging.getLogger("httpx").setLevel(logging.WARNING)
+# logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 # Load environment variables from .env file
-load_dotenv()
+# load_dotenv()
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
@@ -93,18 +93,19 @@ async def main():
 
 
     # --- Session Loading ---
-    session_path = os.path.join(__location__, "nhtsa_session.pkl")
-    session_data = None
-    if os.path.exists(session_path):
-        try:
-            async with aiofiles.open(session_path, "rb") as sf:
-                session_data = await sf.read()
-            logger.info("Loaded existing session data from %s", session_path)
-        except Exception:
-            logger.exception("Failed to read session file; will start a new session.")
+    # session_path = os.path.join(__location__, "nhtsa_session.pkl")
+    # session_data = None
+    # if os.path.exists(session_path):
+    #     try:
+    #         async with aiofiles.open(session_path, "rb") as sf:
+    #             session_data = await sf.read()
+    #         logger.info("Loaded existing session data from %s", session_path)
+    #     except Exception:
+    #         logger.exception("Failed to read session file; will start a new session.")
     
     # --- Client Initialization ---
-    client = NhtsaClient(session_data=session_data)
+    # client = NhtsaClient(session_data=session_data)
+    client = NhtsaClient()
 
     try:
         # # Recalls API
@@ -412,16 +413,16 @@ async def main():
     finally:
         await client.close()
         # --- Session Saving ---
-        try:
-            sdata = client.get_session_data()
-            if sdata:
-                async with aiofiles.open(session_path, "wb") as sf:
-                    await sf.write(sdata)
-                logger.info("Saved session data to %s", session_path)
-            else:
-                logger.debug("Client returned empty session data; nothing saved.")
-        except Exception:
-            logger.exception("Failed to save session data after run.")
+        # try:
+        #     sdata = client.get_session_data()
+        #     if sdata:
+        #         async with aiofiles.open(session_path, "wb") as sf:
+        #             await sf.write(sdata)
+        #         logger.info("Saved session data to %s", session_path)
+        #     else:
+        #         logger.debug("Client returned empty session data; nothing saved.")
+        # except Exception:
+        #     logger.exception("Failed to save session data after run.")
 
 
 if __name__ == "__main__":

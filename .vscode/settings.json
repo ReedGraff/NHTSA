@@ -1,0 +1,17 @@
+{
+    "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+    "github.copilot.chat.codeGeneration.instructions": [
+      {
+        "file": ".vscode/INSTRUCTIONS.md"
+      },
+      {
+        "file": "src/api/lib/globTypes.py"
+      },
+      {
+        "file": "src/api/lib/db.py"
+      },
+    //   {
+    //     "file": "src/api/lib/logger_config.py"
+    //   }
+    ],
+}

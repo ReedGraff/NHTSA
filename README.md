@@ -6,15 +6,22 @@ An unofficial, asynchronous Python SDK for the National Highway Traffic Safety A
 
 ## Overview
 
-This SDK provides a simple, asynchronous client to programmatically access various NHTSA datasets and services, including vehicle safety ratings, recalls, investigations, consumer complaints, manufacturer communications, VIN decoding, and detailed crash/biomechanics/component test data. It handles HTTP requests, rate limiting, and parsing of API responses into clean, consistent Pydantic models. It also provides direct access to static data files for bulk downloads.
+Very comprehensive SDK for accessing NHTSA datasets and services. Supports all documented, as well as most undocumented endpoints discovered through reverse engineering / navigating NHTSA's web applications (Most meaning every single endpoint I have found that does not require CAPTCHA tokens). In addition to pure wrappers for endpoints, this also provides tools for multi-step operations, such as retrieving all document URLs associated for a manufacturer communication number.
 
+Built with `httpx` and `asyncio` for asynchronous, non-blocking I/O. Uses `pydantic` models for structured output.
+
+Most endpoints do not require authentication or API keys, however, and thus session handling and management is a built in feature to this sdk, although not required for most endpoints.
+
+Rate Limiting:
+* Having called with the NHTSA it seems as though the standard rate limit is 100-200 requests per minute, however, this has only been confirmed by NHTSA for the vPIC API.
+<!--
 ## Key Features
 
 <details>
 <summary>Expand to see Key Features</summary>
 
 -   **Asynchronous:** Built with `httpx` and `asyncio` for non-blocking I/O.
--   **Comprehensive API Coverage:** Covers all specified API endpoints for Safety Ratings, Recalls, Investigations, Complaints, Manufacturer Communications, Car Seat Inspection Locator, VIN Decoding, Vehicle Crash Test Database, Biomechanics Test Database, Component Test Database, and Crash Avoidance Test Database.
+-   **Comprehensive API Coverage:** Covers all specified API endpoints for Safety Ratings, Recalls, Investigations, Complaints, Manufacturer Communications, Car Seat Inspection Locator, VIN Decoding, Vehicle Crash Test Database, Biomechanics Test Database, Component Test Database, Crash Avoidance Test Database, **Safety Issues, Product Information (Vehicles, Tires, Equipment, Child Seats)**, Tag Lookup, and Web VIN Lookup.
 -   **Structured Output:** Converts JSON, and handles parsing of text-based static files into easy-to-use Pydantic models.
 -   **Modular Design:** Endpoints are organized into logical API modules (e.g., `recalls`, `vin_decoding`).
 -   **Static File Handling:** Provides utilities to download static data files (CSV, PDF, ZIP) directly from NHTSA's static content servers.
@@ -30,14 +37,16 @@ To get started, install the pip package from PyPI:
 ```bash
 pip install nhtsa
 ```
+-->
 ## How It Works
 
-The NHTSA SDK interacts with various data sources from the NHTSA ecosystem. Below is a breakdown of the API groups, their status in this SDK, and links to their official documentation pages.
+The NHTSA SDK interacts with various data sources from the NHTSA ecosystem. Below is a breakdown of the high level API groups (by their root url), their status in this SDK, and links to their official documentation pages if available.
 
 <details>
-<summary><h3>I. NHTSA Datasets and APIs (`https://api.nhtsa.gov`)</h3></summary>
+<summary><h3>https://api.nhtsa.gov - APIs</h3></summary>
 
 These APIs primarily use `https://api.nhtsa.gov`.
+Most apis are documented at ([Official Link](https://www.nhtsa.gov/nhtsa-datasets-and-apis)). However, some endpoints here were accumulated through reverse engineering and are undocumented. Discovered by navigate applications such as [NHTSA's recall search tool](https://www.nhtsa.gov/recalls). These are noted below.
 
 *   **Ratings API** ([Official Link](https://www.nhtsa.gov/nhtsa-datasets-and-apis#ratings))
     *   **Status: Supported**
@@ -57,15 +66,33 @@ These APIs primarily use `https://api.nhtsa.gov`.
 *   **Car Seat Inspection Locator API** ([Official Link](https://www.nhtsa.gov/nhtsa-datasets-and-apis#car-seat-inspection-locator))
     *   **Status: Supported**
     *   Methods for finding car seat inspection stations by ZIP code, state, and geographical coordinates, with optional filters.
+*   **Safety Issues API**
+    *   **Status: Supported (Undocumented)**
+    *   Methods for retrieving aggregated safety issues (complaints, recalls, investigations, manufacturer communications) by NHTSA ID or through general search.
+*   **Products API**
+    *   **Status: Supported (Undocumented)**
+    *   A consolidated API for retrieving detailed information on various products. Includes methods for:
+        *   **Vehicles:** Searching by YMMT (Year, Make, Model, Trim), by VIN (proxy endpoint with CAPTCHA limitation), and general search with extensive safety data.
+        *   **Tires:** Searching by query string for safety issues and other attributes.
+        *   **Equipment:** Searching by query string for safety issues and other attributes.
+        *   **Child Seats:** Retrieving details, available use modes, and searching by query, weight, and height.
+*   **Tag Lookup API**
+    *   **Status: In Development (Undocumented - Stub - Requires CAPTCHA Token)**
+    *   Provides a signature for license plate tag lookups, but calling it will raise a `NotImplementedError` as it requires a Google reCAPTCHA token.
+*   **VIN Lookup Web API**
+    *   **Status: In Development (Undocumented - Stub - Requires CAPTCHA Token)**
+    *   Provides a signature for web-based VIN lookups, but calling it will raise a `NotImplementedError` as it requires a Google reCAPTCHA token.
 
 </details>
 
 ---
 
 <details>
-<summary><h3>II. vPIC (Vehicle Product Information Catalog) APIs (`https://vpic.nhtsa.dot.gov/api/`)</h3></summary>
+<summary><h3>https://vpic.nhtsa.dot.gov/api/ - APIs</h3></summary>
 
-These APIs primarily use `https://vpic.nhtsa.dot.gov/api/`. Additional language examples can be found at ([Official Link](https://vpic.nhtsa.dot.gov/api/Home/Index/LanguageExamples)).
+These APIs primarily use `https://vpic.nhtsa.dot.gov/api/`.
+In addition to these APIs, NHTSA also offers the full vPIC dataset as a downloadable .bak sql server backup file ([Official Link](https://vpic.nhtsa.dot.gov/api/)).
+\* Useful if your application requires >100-200 requests per minute, which is the confirmed rate limit for the vPIC API.
 
 *   **Decode VIN**
     *   **Status: Supported**
@@ -134,15 +161,73 @@ These APIs primarily use `https://vpic.nhtsa.dot.gov/api/`. Additional language 
     *   **Status: Supported**
     *   Retrieves Canadian vehicle dimension specifications.
 
+If you are looking to use the backup file instead of the API, here is a code stub to get you started once you have restored the .bak file to a SQL Server instance:
+```python
+from datetime import datetime
+import pyodbc # or aioodbc
+
+# Connection details
+connection_string = (
+    "DRIVER={ODBC Driver 17 for SQL Server};"
+    "SERVER=SERVER_NAME_GOES_HERE\\SQLEXPRESS;" # Update with your server name. Most likely you'll use a local SQL Express instance.
+    "DATABASE=vPICList_Lite1;"
+    "Trusted_Connection=yes;"
+)
+
+try:
+    start_time = datetime.now()
+    cnxn = pyodbc.connect(connection_string)
+    cursor = cnxn.cursor()
+
+    # Define values for the parameters you want to include
+    vin_to_decode = '3GNAXLEG5TL174166'
+
+    # @includePrivate bit = null -> pass True (for 1) or False (for 0), or None (for NULL)
+    include_private_data = False  # This explicitly sets @includePrivate to 1 (True)
+    # @year int = null -> pass None to rely on the stored procedure's internal year determination
+    model_year_input = None
+    # @includeAll bit = null -> pass True (for 1) or False (for 0), or None (for NULL)
+    include_all_data = False      # This explicitly sets @includeAll to 1 (True)
+    # @NoOutput bit = 0 -> pass False (for 0) to use the default behavior (return results)
+    no_output_to_table = False   # This explicitly sets @NoOutput to 0 (False)
+
+    # Call the stored procedure with all parameters in the correct order
+    cursor.execute(
+        "{CALL [dbo].[spVinDecode](?, ?, ?, ?, ?)}",
+        vin_to_decode,
+        include_private_data,
+        model_year_input,
+        include_all_data,
+        no_output_to_table
+    )
+
+    # Fetch and print results
+    results = cursor.fetchall()
+    for row in results:
+        print(row)
+        # print(row[10])
+
+    cursor.close()
+    cnxn.close()
+    end_time = datetime.now()
+    duration = end_time - start_time
+    print(f"Duration: {duration.total_seconds()} seconds")
+
+except pyodbc.Error as ex:
+    sqlstate = ex.args[0]
+    print(f"Database error: {sqlstate}")
+```
+
 </details>
 
 ---
 
 <details>
-<summary><h3>III. NHTSA Test Databases (NRD) APIs (`https://nrd.api.nhtsa.dot.gov/`)</h3></summary>
+<summary><h3>https://nrd.api.nhtsa.dot.gov/ - APIs</h3></summary>
 
-These APIs access engineering data from various NHTSA research, test, and compliance programs.
 The base URL for these endpoints is `https://nrd.api.nhtsa.dot.gov/`.
+These APIs access engineering data from various NHTSA research, test, and compliance programs.
+Testing/usage for these endpoints is very limited.
 
 *   **Vehicle Crash Test Database API** ([Official Link](https://nrd.api.nhtsa.dot.gov/nhtsa/vehicle/swagger-ui/index.html))
     *   **Status: In Development (Partial Pydantic Mapping)**
@@ -165,11 +250,11 @@ The base URL for these endpoints is `https://nrd.api.nhtsa.dot.gov/`.
 ---
 
 <details>
-<summary><h3>IV. Other NHTSA Data Sources & Web Portals</h3></summary>
+<summary><h3>Other</h3></summary>
 
-These are primarily links to external web pages, dashboards, or applications, and are **not direct programmatic APIs** for data retrieval. Interaction with these would generally involve web scraping or manual access.
+These are primarily links to external web pages, dashboards, or applications, and are **not direct programmatic APIs** for data retrieval. Interaction with these would generally involve web scraping or manual access, something not built out yet.
 
-*   **NCSA Section** ([Official Link](https://www.nhtsa.gov/data/national-center-statistics-and-analysis))
+*   **NCSA Section** ([Official Link](https://www.nhtsa.gov/data/national-center-statistics-and-analysis)) and ([Official Link](https://cdan.dot.gov/))
     *   **Status: Missing / Out of Scope (Web Portal)**
     *   Links to various NCSA publications, data tools, traffic records, crash data systems, National Driver Register, Data Modernization Project, Regulatory Analysis, and "About NCSA." These are primarily interactive web portals and static reports, not direct data APIs.
 *   **Recalls by Manufacturer Dashboard** ([Official Link](https://data.transportation.gov/Automobiles/NHTSA-Recalls-by-Manufacturer/mu99-t4jn))
@@ -196,111 +281,19 @@ These are primarily links to external web pages, dashboards, or applications, an
 
 </details>
 
----
+<details>
+<summary><h3>Tools - Pre-Built Automations</h3></summary>
+
+These are higher level tools that combine multiple API calls to perform more complex operations. They are built on top of the existing API modules.
+
+*   **Get TSB by MFG Number & VIN**
+    *   **Status: Supported**
+    *   A tool to retrieve Technical Service Bulletins (TSBs) based on the manufacturer communication number and VIN.
+*   **Get TSB by MFG Number**
+    *   **Status: Not Supported**
+    *   A tool to retrieve Technical Service Bulletins (TSBs) just based on the manufacturer communication number.
 
 ## Quick Example
-
-<details id="quick-example">
-<summary>Expand to see a Quick Example</summary>
-
-Here is a basic example demonstrating how to retrieve recall information and decode a VIN.
-
-```python
-# runner.py
-import asyncio
-import os
-import logging
-import traceback
-import json
-import aiofiles
-from dotenv import load_dotenv
-from nhtsa.client import NhtsaClient
-from nhtsa.api.recalls.models import RecallByVehicle
-from nhtsa.api.vin_decoding.models import VinDecodeResult
-
-# Setup logger
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("httpcore").setLevel(logging.WARNING)
-
-# Load environment variables from .env file
-load_dotenv()
-
-__location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-
-async def main():
-    """
-    Main function to run the NHTSA SDK example with session persistence.
-    """
-    # Example variables
-    model_year_recalls = 2012
-    make_recalls = "acura"
-    model_recalls = "rdx"
-    vin_decode = "5UXWX7C5*BA"
-    model_year_vin = 2011
-
-    # --- Session Loading (optional, for persistent sessions) ---
-    session_path = os.path.join(__location__, "nhtsa_session.pkl")
-    session_data = None
-    if os.path.exists(session_path):
-        try:
-            async with aiofiles.open(session_path, "rb") as sf:
-                session_data = await sf.read()
-            logger.info("Loaded existing session data from %s", session_path)
-        except Exception:
-            logger.exception("Failed to read session file; will start a new session.")
-    
-    # --- Client Initialization ---
-    client = NhtsaClient(session_data=session_data)
-
-    try:
-        # --- Recalls API Example ---
-        logger.info(f"\n--- Recalls API: Getting recalls by vehicle (make={make_recalls}, model={model_recalls}, modelYear={model_year_recalls}) ---")
-        recalls_by_vehicle: RecallByVehicle = await client.recalls.get_recalls_by_vehicle(
-            make=make_recalls, 
-            model=model_recalls, 
-            model_year=model_year_recalls
-        )
-        logger.info(f"Recalls by vehicle for {make_recalls} {model_recalls} {model_year_recalls}:")
-        for recall in recalls_by_vehicle.results:
-            logger.info(f"- Campaign Number: {recall.nhtsa_campaign_number}, Component: {recall.component}")
-
-        # --- VIN Decoding API Example ---
-        logger.info(f"\n--- VIN Decoding API: Decode VIN {vin_decode} for model year {model_year_vin} ---")
-        decoded_vin_kv: VinDecodeResult = await client.vin_decoding.decode_vin(
-            vin=vin_decode, 
-            model_year=model_year_vin
-        )
-        logger.info(f"Decoded VIN for {vin_decode}:")
-        for entry in decoded_vin_kv.results:
-            if entry.value: # Only print entries that have a value
-                logger.info(f"- {entry.variable}: {entry.value}")
-
-    except Exception as e:
-        logger.error(f"An error occurred during the SDK execution: {e}")
-        logger.error(traceback.format_exc())
-    finally:
-        await client.close()
-        # --- Session Saving (optional) ---
-        try:
-            sdata = client.get_session_data()
-            if sdata:
-                async with aiofiles.open(session_path, "wb") as sf:
-                    await sf.write(sdata)
-                logger.info("Saved session data to %s", session_path)
-            else:
-                logger.debug("Client returned empty session data; nothing saved.")
-        except Exception:
-            logger.exception("Failed to save session data after run.")
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
-
-```
-
-</details>
 
 <details id="minimal-example">
 <summary>Super minimal example</summary>
@@ -315,7 +308,7 @@ async def main():
     client = NhtsaClient()
     print(f"\n--- VIN Decoding API: Decode VIN Batch ---")
     decoded_vin_batch = await client.vin_decoding.decode_vin_batch(data="3GNDA13D76S000000,2011; 5XYKT3A12CG000000")
-    print(f"Decoded VIN Batch (first result): {decoded_vin_batch.results[0].model_dump_json(indent=2)}")
+    print(f"Decoded VIN Batch (first result): {decoded_vin_batch.results.model_dump_json(indent=2)}")
 
 if __name__ == "__main__":
     asyncio.run(main())
@@ -363,51 +356,37 @@ src/nhtsa/
 │   ├── nhtsa_database_code_library/
 │   │       ├── index.py           # NhtsaDatabaseCodeLibraryAPI class
 │   │       └── models.py          # Pydantic models for code library data
+│   ├── products/                  # Consolidated for Vehicles, Tires, Equipment, Child Seats
+│   │       ├── index.py           # ProductsAPI class
+│   │       └── models.py          # Pydantic models for various product data
 │   ├── recalls/
 │   │       ├── index.py           # RecallsAPI class
 │   │       └── models.py          # Pydantic models for recall data
 │   ├── safetyservice/
 │   │       ├── index.py           # SafetyServiceAPI class
 │   │       └── models.py          # Pydantic models for safety rating data
+│   ├── safety_issues/             # For aggregated safety issue queries
+│   │       ├── index.py           # SafetyIssuesAPI class
+│   │       └── models.py          # Pydantic models for safety issues data
 │   ├── static_files/
 │   │       ├── index.py           # StaticFilesAPI class for direct file downloads
 │   │       └── models.py          # (Currently empty, or for static file metadata)
+│   ├── tag_lookup/                # For license plate tag lookups (stubbed)
+│   │       ├── index.py           # TagLookupAPI class
+│   │       └── models.py          # (Empty - stubbed)
+│   ├── tools/                     # Prebuilt tools for multi-step operations
+│   │       └── index.py           # Source for the tools
 │   ├── vehicle_crash_test_database/
 │   │       ├── index.py           # VehicleCrashTestDatabaseAPI class
 │   │       └── models.py          # Pydantic models for vehicle crash test data
 │   ├── vin_decoding/
 │   │       ├── index.py           # VinDecodingAPI class
 │   │       └── models.py          # Pydantic models for VIN decoding data
+│   └── vin_lookup_web/            # For web-based VIN lookups (stubbed)
+│           ├── index.py           # VinLookupWebAPI class
+│           └── models.py          # (Empty - stubbed)
 
 ```
-
-</details>
-
-## Core Components
-
-<details>
-<summary>Expand to see Core Components</summary>
-
-### `client.py`
-
-This file contains the `NhtsaClient` class, which is the heart of the SDK. It is responsible for:
--   Managing `httpx.AsyncClient` sessions for the main API (`api.nhtsa.gov`), vPIC API (`vpic.nhtsa.dot.gov`), static files (`static.nhtsa.gov`), and NRD APIs (`nrd.api.nhtsa.dot.gov`).
--   Storing base URLs and common headers for all requests.
--   A private `_request` method that centralizes rate limiting, error handling, verbose logging (with stack traces for errors), and execution of all HTTP requests.
--   Providing access to the various API modules (e.g., `self.recalls`, `self.vin_decoding`, `self.static_files`, `self.vehicle_crash_test_database`).
--   Handling session persistence (saving and loading cookies/state via `pickle`).
-
-### `api/recalls/` (Example API Module)
-
-This module encapsulates all functionality related to vehicle recalls.
--   **`index.py`**: Defines the `RecallsAPI` class. It contains methods like `get_recalls_by_vehicle()` and `get_recalls_by_campaign_number()` which make targeted API calls.
--   **`models.py`**: Defines the Pydantic models (`RecallResult`, `RecallByVehicle`, etc.) that provide the structured output for recall data. This ensures that the user of the SDK always receives a predictable and easy-to-work-with object.
-
-### `api/static_files/` (New API Module for Static Content)
-
-This module is designed for direct interaction with static content hosted on `static.nhtsa.gov`.
--   **`index.py`**: Defines the `StaticFilesAPI` class. It contains a generic `download_file()` method and specific methods like `get_manufacturer_communication_pdf()` to construct and download files based on known URL patterns.
--   **`models.py`**: Currently contains `TSBInfo` to aid in parsing flat files for dynamic URL generation, and can be extended for other static file metadata models.
 
 </details>
 
@@ -415,6 +394,11 @@ This module is designed for direct interaction with static content hosted on `st
 
 This project is licensed under the MIT License - see the `LICENSE` file for details.
 
-## Contributing
+## Contributions
 
 Contributions are welcome! Please leave issues or pull requests on the GitHub repository.
+
+Each logical grouping of endpoints is encapsulated in its own module within the `api/` directory. Each module contains:
+* An `index.py` file that defines the main API class with methods for each endpoint.
+* A `models.py` file that defines the Pydantic models for structured output.
+* changes to the core client logic (e.g., session management, request handling) are made in `client.py`.
