@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='nhtsa',
-    version='0.1.3',
+    version='0.1.4',
     packages=find_packages(where='src'),
     package_dir={'': 'src'},
     author='Reed Graff',

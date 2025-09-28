@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import TYPE_CHECKING, List
 from pydantic import parse_obj_as
 import logging
@@ -43,14 +44,16 @@ class ManufacturerCommunicationsAPI:
 
     async def get_flat_file_metadata(self) -> List[ManufacturerCommunicationFlatFile]:
         """
-        Returns metadata about available manufacturer communication flat files.
-        Note: This information is scraped from the HTML documentation and is static.
+        Scrapes NHTSA Datasets & APIs page for Manufacturer Communications flat files.
+        Falls back to the current static list if scraping yields no results or fails.
+
+        Args:
+            None
 
         Returns:
-            List[ManufacturerCommunicationFlatFile]: A list of Pydantic models describing the available flat files.
+            List[ManufacturerCommunicationFlatFile]: List of available flat files with size and updated timestamp.
         """
-        # This data is hardcoded based on the provided HTML snippet.
-        metadata = [
+        fallback = [
             ManufacturerCommunicationFlatFile(path="https://static.nhtsa.gov/odi/ffdd/tsbs/TSBS.txt", size="6 KB", updated="06/26/2024 11:44:33 AM ET"),
             ManufacturerCommunicationFlatFile(path="https://static.nhtsa.gov/odi/ffdd/tsbs/MFR_COMMS_RECEIVED_1995-1999.zip", size="633 KB", updated="09/19/2025 06:05:02 AM ET"),
             ManufacturerCommunicationFlatFile(path="https://static.nhtsa.gov/odi/ffdd/tsbs/MFR_COMMS_RECEIVED_2000-2004.zip", size="2 MB", updated="09/19/2025 06:05:03 AM ET"),
@@ -67,7 +70,31 @@ class ManufacturerCommunicationsAPI:
             ManufacturerCommunicationFlatFile(path="https://static.nhtsa.gov/odi/ffdd/tsbs/TSBS_RECEIVED_2020-2024.zip", size="30 MB", updated="09/19/2025 06:14:17 AM ET"),
             ManufacturerCommunicationFlatFile(path="https://static.nhtsa.gov/odi/ffdd/tsbs/TSBS_RECEIVED_2025-2025.zip", size="5 MB", updated="09/19/2025 06:05:41 AM ET"),
         ]
-        return metadata
+        try:
+            resp = await self.client._request(
+                "GET",
+                "https://www.nhtsa.gov/nhtsa-datasets-and-apis",
+                headers={"accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"}
+            )
+            html = resp.text
+            pattern = re.compile(
+                r'<tr>\s*<td><a href="(?P<href>https?://static\.nhtsa\.gov/odi/ffdd/tsbs/[^"]+)">.*?</a></td>\s*<td>(?P<size>[^<]+)</td>\s*<td>(?P<updated>[^<]+)</td>\s*</tr>',
+                re.IGNORECASE
+            )
+            files: List[ManufacturerCommunicationFlatFile] = []
+            for m in pattern.finditer(html):
+                files.append(ManufacturerCommunicationFlatFile(
+                    path=m.group("href"),
+                    size=m.group("size").strip(),
+                    updated=m.group("updated").strip()
+                ))
+            if files:
+                return files
+            logger.warning("Manufacturer communications flat file links not found; returning fallback list.")
+            return fallback
+        except Exception as e:
+            logger.error(f"Error scraping manufacturer communications flat files: {e}", exc_info=True)
+            return fallback
 
     async def get_tsb_information_from_flat_file(self, file_url: str) -> List[TSBInfo]:
         """

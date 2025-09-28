@@ -1,6 +1,8 @@
 from typing import TYPE_CHECKING, List, Optional, Union
 from pydantic import parse_obj_as
 import logging
+from urllib.parse import urljoin
+import re
 
 from .models import (
     VinDecodeResult, VinDecodeFlatResult, VinDecodeExtendedResult,
@@ -450,3 +452,38 @@ class VinDecodingAPI:
         url = "/vehicles/GetCanadianVehicleSpecifications/"
         response = await self.client._request("GET", url, params=params, use_vpic_client=True)
         return parse_obj_as(CanadianVehicleSpecificationsResult, response.json())
+
+    async def get_standalone_vpic_db_url(self) -> str:
+        """
+        Scrapes the vPIC API homepage to find the standalone VIN decoding database URL (.bak.zip).
+
+        Args:
+            None
+
+        Returns:
+            str: Absolute URL to the current .bak.zip file. Falls back to the current raw URL if not found.
+
+        Raises:
+            None
+
+        Examples:
+            >>> url = await client.vin_decoding.get_standalone_vpic_db_url()
+        """
+        default_url = f"{self.client.VPIC_BASE_URL}/vPICList_lite_2025_09.bak.zip"
+        try:
+            response = await self.client._request(
+                "GET",
+                "/",
+                use_vpic_client=True,
+                headers={"accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"},
+            )
+            html = response.text
+            match = re.search(r'href="(?P<href>/api/[^"]+\.bak\.zip)"', html, re.IGNORECASE)
+            if match:
+                href = match.group("href").lstrip("/")
+                return urljoin(self.client.VPIC_BASE_URL + "/", href)
+            logger.warning("Standalone vPIC DB URL not found on index page; using default fallback.")
+            return default_url
+        except Exception as e:
+            logger.error(f"Error scraping vPIC index for standalone DB URL: {e}", exc_info=True)
+            return default_url

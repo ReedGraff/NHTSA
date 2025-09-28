@@ -308,9 +308,13 @@ async def main():
         # variable_values_by_id = await client.vin_decoding.get_vehicle_variable_values_list(variable_search_param=str(vehicle_variable_id))
         # logger.info(f"Variable Values for ID '{vehicle_variable_id}': {variable_values_by_id.model_dump_json(indent=2)}")
 
-        logger.info(f"\n--- VIN Decoding API: Decode VIN Batch ---")
-        decoded_vin_batch = await client.vin_decoding.decode_vin_batch(data=decode_vin_batch_data)
-        logger.info(f"Decoded VIN Batch (first result): {decoded_vin_batch.results[0].model_dump_json(indent=2)}")
+        # logger.info(f"\n--- VIN Decoding API: Decode VIN Batch ---")
+        # decoded_vin_batch = await client.vin_decoding.decode_vin_batch(data=decode_vin_batch_data)
+        # logger.info(f"Decoded VIN Batch (first result): {decoded_vin_batch.results[0].model_dump_json(indent=2)}")
+
+        logger.info(f"\n--- VIN Decoding API: Get DB Download URL ---")
+        db_download_url = await client.vin_decoding.get_standalone_vpic_db_url()
+        logger.info(f"DB Download URL: {db_download_url}")
 
         # logger.info(f"\n--- VIN Decoding API: Get Canadian Vehicle Specifications for Year {canadian_vehicle_year}, Make '{canadian_vehicle_make}' ---")
         # canadian_specs = await client.vin_decoding.get_canadian_vehicle_specifications(year=canadian_vehicle_year, make=canadian_vehicle_make)
