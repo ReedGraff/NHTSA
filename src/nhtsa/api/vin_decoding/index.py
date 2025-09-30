@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, List, Optional, Union
 from pydantic import parse_obj_as
 import logging
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit
 import re
 
 from .models import (
@@ -480,8 +480,10 @@ class VinDecodingAPI:
             html = response.text
             match = re.search(r'href="(?P<href>/api/[^"]+\.bak\.zip)"', html, re.IGNORECASE)
             if match:
-                href = match.group("href").lstrip("/")
-                return urljoin(self.client.VPIC_BASE_URL + "/", href)
+                href = match.group("href")
+                parts = urlsplit(self.client.VPIC_BASE_URL)
+                origin = f"{parts.scheme}://{parts.netloc}"
+                return urljoin(origin + "/", href.lstrip("/"))
             logger.warning("Standalone vPIC DB URL not found on index page; using default fallback.")
             return default_url
         except Exception as e:

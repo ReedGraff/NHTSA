@@ -160,6 +160,9 @@ In addition to these APIs, NHTSA also offers the full vPIC dataset as a download
 *   **Get Canadian vehicle specifications**
     *   **Status: Supported**
     *   Retrieves Canadian vehicle dimension specifications.
+*   **Get Latest Standalone DB Backup Zip File `get_standalone_vpic_db_url`**
+    *   **Status: Supported (This is a tool, not really an API endpoint)**
+    *   Retrieves the latest standalone database backup zip file. If it fails it will return `https://vpic.nhtsa.dot.gov/api/vPICList_lite_2025_09.bak.zip`
 
 If you are looking to use the backup file instead of the API, here is a code stub to get you started once you have restored the .bak file to a SQL Server instance:
 ```python
@@ -292,6 +295,8 @@ These are higher level tools that combine multiple API calls to perform more com
 *   **Get TSB by MFG Number**
     *   **Status: Not Supported**
     *   A tool to retrieve Technical Service Bulletins (TSBs) just based on the manufacturer communication number.
+
+</details>
 
 ## Quick Example
 
